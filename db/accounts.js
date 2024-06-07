@@ -7,13 +7,17 @@ const pool = new Pool({
   port: 5433,
 });
 const localStrategy = require("passport-local");
+const bcrypt = require("bcrypt");
+
 
 const createAccount = async (account) => {
   const { username, password, email } = account;
   try {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
     const results = await pool.query(
       "INSERT INTO accounts (username, password, email) VALUES($1, $2, $3) RETURNING *",
-      [username, password, email]
+      [username, hashedPassword, email]
     );
     const newAccount = results.rows[0];
     return newAccount;
@@ -33,7 +37,8 @@ const login = new localStrategy(async function (username, password, done) {
       return done(null, false, { message: "Incorrect Username." });
 
     const user = result.rows[0];
-    if (user.password != password)
+    const isMatched = await bcrypt.compare(password, user.password);
+    if (!isMatched)
       return done(null, false, { message: "Incorrect Password" });
 
     return done(null, user);

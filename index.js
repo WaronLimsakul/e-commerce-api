@@ -8,6 +8,7 @@ const session = require('express-session');
 const app = express();
 
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: false}));
 
 app.use(session({
   secret: 'foS5gMf6Y6',
@@ -32,6 +33,9 @@ app.post(
     res.send('login success')
   }
 );
+app.get("/login", (req, res) => {
+  res.send("Please log in again"); // Or any other response
+});
 
 app.post("/register", async (req, res) => {
   try {
