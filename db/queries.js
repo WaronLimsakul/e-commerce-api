@@ -7,8 +7,9 @@ const pool = new Pool({
   port: 5433,
 });
 
+// Accounts
 const getAllAccounts = (req, res) => {
-  pool.query("SELECT * FROM accounts ORDER BY id", (err, results) => {
+  pool.query("SELECT username, email FROM accounts ORDER BY id", (err, results) => {
     if (err) {
       throw err;
     }
@@ -27,6 +28,7 @@ const getAccountById = (req, res) => {
   });
 };
 
+// Products
 const getAllProducts = (req, res) => {
   pool.query("SELECT * FROM products ORDER BY id", (err, results) => {
     if (err) {
@@ -48,6 +50,19 @@ const getProductById = (req, res) => {
   });
 };
 
+const getProductByCategoryId = (req, res) => {
+  const { categoryId } = req.query;
+  pool.query("SELECT * FROM products WHERE category_id = $1", [categoryId], (err, results) => {
+    if (err) {
+      console.error("Error fetching product by category", err);
+      res.status(500).json({ error: "Internal server error" });
+      return;
+    }
+    res.status(200).json(results.rows);
+  });
+};
+
+// Carts
 const getCart = (req, res) => {
   const accountId = parseInt(req.params.accountId);
   pool.query(
@@ -64,6 +79,7 @@ const getCart = (req, res) => {
   );
 };
 
+// Orders
 const getAllOrders = (req, res) => {
   pool.query("SELECT * FROM orders ORDER BY id", (err, results) => {
     if (err) {
@@ -90,6 +106,7 @@ const getOrderById = (req, res) => {
 module.exports = {
   getAllProducts,
   getProductById,
+  getProductByCategoryId,
   getAccountById,
   getAllAccounts,
   getCart,

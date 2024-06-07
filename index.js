@@ -22,6 +22,7 @@ app.use(passport.session());
 passport.use(accounts.login);
 
 passport.serializeUser((user, done) => {
+  req.session.authenticated = true;
   done(null, user.id);
 });
 passport.deserializeUser(accounts.deserializeAccountById);
@@ -48,9 +49,22 @@ app.post("/register", async (req, res) => {
 
 app.get("/accounts", db.getAllAccounts);
 app.get("/accounts/:id", db.getAccountById);
-app.get("/products", db.getAllProducts);
+
+
+app.get("/products", (req, res, next) => {
+  const {categoryId} = req.query;
+  if (categoryId) {
+    db.getProductByCategoryId(req, res, next);
+  } else {
+    db.getAllProducts(req, res, next);
+  }
+});
 app.get("/products/:id", db.getProductById);
+
+
 app.get("/accounts/:accountId/cart", db.getCart);
+
+
 app.get("/orders", db.getAllOrders);
 app.get("/orders/:id", db.getOrderById);
 
