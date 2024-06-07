@@ -42,4 +42,18 @@ const login = new localStrategy(async function (username, password, done) {
   }
 });
 
-module.exports = { createAccount, login };
+const deserializeAccountById = async (id, done) => {
+  try {
+    const result = await pool.query("SELECT * FROM accounts WHERE id = $1", [
+      id,
+    ]);
+    if (result.rows.length == 0) {
+      done(new Error("User not found"));
+    }
+    done(null, result.rows[0]);
+  } catch (err) {
+    done(err);
+  }
+};
+
+module.exports = { createAccount, login, deserializeAccountById };
