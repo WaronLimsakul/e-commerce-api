@@ -9,7 +9,7 @@ const pool = new Pool({
 
 // Accounts
 const getAllAccounts = (req, res) => {
-  pool.query("SELECT username, email FROM accounts ORDER BY id", (err, results) => {
+  pool.query("SELECT id, username, email FROM accounts ORDER BY id", (err, results) => {
     if (err) {
       throw err;
     }

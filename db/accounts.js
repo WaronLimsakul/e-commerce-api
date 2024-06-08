@@ -6,7 +6,7 @@ const pool = new Pool({
   password: "postgres2",
   port: 5433,
 });
-const localStrategy = require("passport-local");
+const localStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcrypt");
 
 
@@ -27,7 +27,7 @@ const createAccount = async (account) => {
   }
 };
 
-const login = new localStrategy(async function (username, password, done) {
+const login = new localStrategy( {passReqToCallback: true}, async (req, username, password, done) => {
   try {
     const result = await pool.query(
       "SELECT * FROM accounts WHERE username = $1",
@@ -39,7 +39,10 @@ const login = new localStrategy(async function (username, password, done) {
     const user = result.rows[0];
     const isMatched = await bcrypt.compare(password, user.password);
     if (!isMatched)
-      return done(null, false, { message: "Incorrect Password" });
+      {return done(null, false, { message: "Incorrect Password" });};
+
+    req.session.authorized = true;
+    console.log('session after login:', req.session);
 
     return done(null, user);
   } catch (err) {
@@ -61,4 +64,28 @@ const deserializeAccountById = async (id, done) => {
   }
 };
 
-module.exports = { createAccount, login, deserializeAccountById };
+const checkAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    // User is authenticated, proceed to the next middleware
+    return next();
+  } else {
+    // User is not authenticated, return a 401 Unauthorized response
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+};
+
+const isOwner = (req, res, next) => {
+  const requestedUserId = parseInt(req.params.id);
+  const authenticatedUserId = parseInt(req.user.id);
+  // console.log('this is what you request:', requestedUserId);
+  // console.log('this is you:', authenticatedUserId);
+  // console.log('this is req.user', req.user);
+  // console.log('this is session', req.session);
+
+  if(requestedUserId !== authenticatedUserId) {
+    return res.status(401).json({error: "You're not him"})
+  }
+  next()
+};
+
+module.exports = { createAccount, login, deserializeAccountById, checkAuthenticated, isOwner };
