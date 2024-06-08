@@ -16,7 +16,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(
   session({
     secret: "foS5gMf6Y6",
-    cookie: {maxAge: 1000*60*3, secure: false, sameSite: "none"},
+    cookie: {maxAge: 1000*60*5, secure: false, sameSite: "none"},
     resave: false,
     saveUninitialized: false,
   })
@@ -92,7 +92,9 @@ app.get("/products/:id", db.getProductById);
 
 
 ////////////////// carts
-app.get("/accounts/:accountId/cart", db.getCart);
+app.get("/accounts/:id/cart", accounts.checkAuthenticated, accounts.isOwner, db.getCart);
+app.post("/cart", accounts.checkAuthenticated, db.createCart);
+app.post("/cart/:id", accounts.checkAuthenticated, accounts.isOwnerOfCart, db.updateCart);
 
 
 ////////////////// orders

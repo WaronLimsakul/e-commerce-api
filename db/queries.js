@@ -112,23 +112,74 @@ const getProductByCategoryId = (req, res) => {
 };
 
 ////////////////////////////////////////////////// Carts
-const getCart = (req, res) => {
-  const accountId = parseInt(req.params.accountId);
-  pool.query(
-    "SELECT * FROM products WHERE account_id = $1",
-    [accountId],
-    (err, results) => {
-      if (err) {
-        console.error("Error fetching cart by ID", err);
-        res.status(500).json({ error: "Internal server error" });
-        return;
-      }
-      res.status(200).json(results.rows);
+const getCart = async (req, res) => {
+  const accountId = parseInt(req.params.id);
+  try {
+    const cart = await pool.query(
+      "SELECT * FROM carts WHERE account_id = $1",
+      [accountId]
+    );
+    // const cartProducts = await pool.query(
+    //   "SELECT product_id, quantity FROM products_carts WHERE cart_id = $1",
+    //   [cart.rows[0].id]
+    // );
+    console.log("cart found:",cart.rows.length);
+    if (cart.rows.length == 0) {
+      return res.status(404).send("cart not found");
     }
-  );
+    res.json(cart.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Internal server error");
+  }
 };
 
+const createCart = async (req, res) => {
+  //assume that the user is authenticated
+  const userId = req.user.id;
+  try {
+    const existingCart = await pool.query(
+      "SELECT * FROM carts WHERE account_id = $1",
+      [userId]
+    );
+    if (existingCart.rows.rength > 0) {
+      return res.redirect(`/accounts/${userId}/cart`);
+    }
+    const newCart = await pool.query(
+      "INSERT INTO carts (account_id, created_at, updated_at) VALUES ($1, NOW(), NOW())",
+      [userId]
+    );
+    res.status(201).json(newCart.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
 
+const updateCart = async (req, res) => {
+  const cartId = parseInt(req.params.id);
+  const { productId, quantity } = req.body;
+
+  try {
+    const existingProduct = await pool.query(
+      "SELECT * FROM products_carts WHERE cart_id = $1 AND product_id = $2", [cartId, productId]
+    );
+    if (existingProduct.rows.length > 0) {
+      const updatedCart = await pool.query(
+        "UPDATE products_carts SET quantity = quantity + $1, updated_at = NOW() WHERE cart_id = $2 AND product_id = $3 RETURNING *",
+        [quantity, cartId, productId]
+      );
+      return res.status(200).json(updatedCart.rows[0]);
+    }
+    const newProduct = await pool.query(
+      "INSERT INTO products_carts (cart_id, product_id, quantity, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *",
+      [cartId, productId, quantity]
+    );
+    res.status(201).json(newProduct.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Internal Server Error");
+  }
+};
 ////////////////////////////////////////////////// Orders
 const getAllOrders = (req, res) => {
   pool.query("SELECT * FROM orders ORDER BY id", (err, results) => {
@@ -160,6 +211,8 @@ module.exports = {
   getAllAccounts,
   updateAccountById,
   getCart,
+  createCart,
+  updateCart,
   getOrderById,
   getAllOrders,
 };

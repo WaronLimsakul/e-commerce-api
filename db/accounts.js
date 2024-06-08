@@ -88,4 +88,21 @@ const isOwner = (req, res, next) => {
   next()
 };
 
-module.exports = { createAccount, login, deserializeAccountById, checkAuthenticated, isOwner };
+const isOwnerOfCart = async (req, res, next) => {
+  const cartId = parseInt(req.params.id);
+  try {
+  const user = await pool.query("SELECT * FROM carts WHERE id = $1", [cartId]);
+  const cartOwnerId = user.rows[0].account_id;
+  const authenticatedUserId = parseInt(req.user.id);
+
+  if (cartOwnerId !== authenticatedUserId) {
+    return res.status(401).json({error: "You're not the cart's owner"})
+  }
+  next()
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal server error');
+  }
+};
+
+module.exports = { createAccount, login, deserializeAccountById, checkAuthenticated, isOwner, isOwnerOfCart };
