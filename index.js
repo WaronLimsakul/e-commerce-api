@@ -16,7 +16,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(
   session({
     secret: "foS5gMf6Y6",
-    cookie: {maxAge: 1000*60*5, secure: false, sameSite: "none"},
+    cookie: {maxAge: 1000*60*3, secure: false, sameSite: "none"},
     resave: false,
     saveUninitialized: false,
   })
@@ -45,7 +45,7 @@ app.post(
 app.get("/login", (req, res) => {
   res.status(400).send("Please log in again"); // Or any other response
 });
-app.get("/success", accounts.checkAuthenticated,(req, res) => {
+app.get("/success", accounts.checkAuthenticated, (req, res) => {
   res.send("login success!");
 });
 
@@ -68,6 +68,8 @@ app.get("/logout", (req, res) => {
   
 
 ////////////////////////////////////////////////////////// endpoint part
+
+////////////////// accounts
 app.get("/accounts", db.getAllAccounts);
 app.get(
   "/accounts/:id",
@@ -75,7 +77,9 @@ app.get(
   accounts.isOwner,
   db.getAccountById
 );
+app.put('/accounts/:id',accounts.checkAuthenticated, accounts.isOwner, db.updateAccountById);
 
+////////////////// products
 app.get("/products", (req, res, next) => {
   const { categoryId } = req.query;
   if (categoryId) {
@@ -86,8 +90,12 @@ app.get("/products", (req, res, next) => {
 });
 app.get("/products/:id", db.getProductById);
 
+
+////////////////// carts
 app.get("/accounts/:accountId/cart", db.getCart);
 
+
+////////////////// orders
 app.get("/orders", db.getAllOrders);
 app.get("/orders/:id", db.getOrderById);
 
