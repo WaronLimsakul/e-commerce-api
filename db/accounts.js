@@ -9,7 +9,6 @@ const pool = new Pool({
 const localStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcrypt");
 
-
 const createAccount = async (account) => {
   const { username, password, email } = account;
   try {
@@ -27,28 +26,32 @@ const createAccount = async (account) => {
   }
 };
 
-const login = new localStrategy( {passReqToCallback: true}, async (req, username, password, done) => {
-  try {
-    const result = await pool.query(
-      "SELECT * FROM accounts WHERE username = $1",
-      [username]
-    );
-    if (result.rows.length === 0)
-      return done(null, false, { message: "Incorrect Username." });
+const login = new localStrategy(
+  { passReqToCallback: true },
+  async (req, username, password, done) => {
+    try {
+      const result = await pool.query(
+        "SELECT * FROM accounts WHERE username = $1",
+        [username]
+      );
+      if (result.rows.length === 0)
+        return done(null, false, { message: "Incorrect Username." });
 
-    const user = result.rows[0];
-    const isMatched = await bcrypt.compare(password, user.password);
-    if (!isMatched)
-      {return done(null, false, { message: "Incorrect Password" });};
+      const user = result.rows[0];
+      const isMatched = await bcrypt.compare(password, user.password);
+      if (!isMatched) {
+        return done(null, false, { message: "Incorrect Password" });
+      }
 
-    req.session.authorized = true;
-    console.log('session after login:', req.session);
+      req.session.authorized = true;
+      console.log("session after login:", req.session);
 
-    return done(null, user);
-  } catch (err) {
-    return done(err);
+      return done(null, user);
+    } catch (err) {
+      return done(err);
+    }
   }
-});
+);
 
 const deserializeAccountById = async (id, done) => {
   try {
@@ -70,7 +73,7 @@ const checkAuthenticated = (req, res, next) => {
     return next();
   } else {
     // User is not authenticated, return a 401 Unauthorized response
-    res.status(401).json({ error: 'Unauthorized' });
+    res.status(401).json({ error: "Unauthorized" });
   }
 };
 
@@ -82,27 +85,36 @@ const isOwner = (req, res, next) => {
   // console.log('this is req.user', req.user);
   // console.log('this is session', req.session);
 
-  if(requestedUserId !== authenticatedUserId) {
-    return res.status(401).json({error: "You're not him"})
+  if (requestedUserId !== authenticatedUserId) {
+    return res.status(401).json({ error: "You're not him" });
   }
-  next()
+  next();
 };
 
 const isOwnerOfCart = async (req, res, next) => {
   const cartId = parseInt(req.params.id);
   try {
-  const user = await pool.query("SELECT * FROM carts WHERE id = $1", [cartId]);
-  const cartOwnerId = user.rows[0].account_id;
-  const authenticatedUserId = parseInt(req.user.id);
+    const user = await pool.query("SELECT * FROM carts WHERE id = $1", [
+      cartId,
+    ]);
+    const cartOwnerId = user.rows[0].account_id;
+    const authenticatedUserId = parseInt(req.user.id);
 
-  if (cartOwnerId !== authenticatedUserId) {
-    return res.status(401).json({error: "You're not the cart's owner"})
-  }
-  next()
+    if (cartOwnerId !== authenticatedUserId) {
+      return res.status(401).json({ error: "You're not the cart's owner" });
+    }
+    next();
   } catch (err) {
     console.error(err);
-    res.status(500).send('Internal server error');
+    res.status(500).send("Internal server error");
   }
 };
 
-module.exports = { createAccount, login, deserializeAccountById, checkAuthenticated, isOwner, isOwnerOfCart };
+module.exports = {
+  createAccount,
+  login,
+  deserializeAccountById,
+  checkAuthenticated,
+  isOwner,
+  isOwnerOfCart,
+};

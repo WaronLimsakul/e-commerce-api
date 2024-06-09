@@ -111,19 +111,38 @@ const getProductByCategoryId = (req, res) => {
   );
 };
 
+////////////////////////////////////////////////// Help calculate total price
+const calculateTotalPrice = async (cartId) => {
+  try {
+    const result = await pool.query(
+      `SELECT SUM(pc.quantity * p.price) AS total_price
+      FROM products_carts pc 
+      JOIN products p ON pc.product_id = p.id 
+      WHERE pc.cart_id = $1`,
+      [cartId]
+    );
+    if (result.rows.length > 0) {
+      return result.rows[0].total_price;
+    } else {
+      return 0;
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
 ////////////////////////////////////////////////// Carts
 const getCart = async (req, res) => {
   const accountId = parseInt(req.params.id);
   try {
-    const cart = await pool.query(
-      "SELECT * FROM carts WHERE account_id = $1",
-      [accountId]
-    );
+    const cart = await pool.query("SELECT * FROM carts WHERE account_id = $1 AND checked_out = false", [
+      accountId,
+    ]);
     // const cartProducts = await pool.query(
     //   "SELECT product_id, quantity FROM products_carts WHERE cart_id = $1",
     //   [cart.rows[0].id]
     // );
-    console.log("cart found:",cart.rows.length);
+    console.log("cart found:", cart.rows.length);
     if (cart.rows.length == 0) {
       return res.status(404).send("cart not found");
     }
@@ -139,7 +158,7 @@ const createCart = async (req, res) => {
   const userId = req.user.id;
   try {
     const existingCart = await pool.query(
-      "SELECT * FROM carts WHERE account_id = $1",
+      "SELECT * FROM carts WHERE account_id = $1 AND checked_out = false",
       [userId]
     );
     if (existingCart.rows.rength > 0) {
@@ -151,7 +170,9 @@ const createCart = async (req, res) => {
     );
     res.status(201).json(newCart.rows[0]);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Internal server error" });
+    throw err
   }
 };
 
@@ -161,25 +182,99 @@ const updateCart = async (req, res) => {
 
   try {
     const existingProduct = await pool.query(
-      "SELECT * FROM products_carts WHERE cart_id = $1 AND product_id = $2", [cartId, productId]
+      "SELECT * FROM products_carts WHERE cart_id = $1 AND product_id = $2",
+      [cartId, productId]
     );
     if (existingProduct.rows.length > 0) {
       const updatedCart = await pool.query(
         "UPDATE products_carts SET quantity = quantity + $1, updated_at = NOW() WHERE cart_id = $2 AND product_id = $3 RETURNING *",
         [quantity, cartId, productId]
       );
-      return res.status(200).json(updatedCart.rows[0]);
+      const totalPrice = await calculateTotalPrice(cartId);
+      const cartNow = await pool.query(
+        "UPDATE carts SET total_price = $1 WHERE id = $2 RETURNING id, updated_at, total_price",
+        [totalPrice, cartId]
+      );
+      return res
+        .status(200)
+        .json({ cart: cartNow.rows[0], detail: updatedCart.rows[0] });
     }
     const newProduct = await pool.query(
       "INSERT INTO products_carts (cart_id, product_id, quantity, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *",
       [cartId, productId, quantity]
     );
-    res.status(201).json(newProduct.rows[0]);
+    const cartNow = await pool.query(
+      "UPDATE carts SET total_price = $1 WHERE id = $2 RETURNING id, updated_at, total_price",
+      [totalPrice, cartId]
+    );
+    res.status(201).json({ cart: cartNow.rows[0], detail: newProduct.rows[0] });
   } catch (err) {
     console.error(err);
     res.status(500).send("Internal Server Error");
+    throw err;
   }
 };
+////////////////////////////////////////////////// Checkout
+
+const checkout = async (req, res) => {
+  const cartId = parseInt(req.params.id);
+  const accountId = parseInt(req.user.id);
+  try {
+    // check if cart exist + has products
+    const cart = await pool.query(
+      "SELECT * FROM carts WHERE id = $1 AND account_id = $2 AND checked_out = false",
+      [cartId, accountId]
+    );
+    console.log('cart id :', cartId);
+    console.log('account id:', accountId);
+    if (cart.rows.length == 0) {
+      return res
+        .status(404)
+        .json({ error: "Cart not found or already checked out" });
+    }
+    const cartProducts = await pool.query(
+      "SELECT * FROM products_carts WHERE cart_id = $1",
+      [cartId]
+    );
+    if (cartProducts.rows.length == 0) {
+      return res.status(404).send({ error: "Items not found" });
+    }
+
+    // payment (mocked)
+    const paymentSuccess = true;
+    if (!paymentSuccess) {
+      res.status(500).json({ error: "payment failed" });
+    }
+
+    // create order
+    const orderResult = await pool.query(
+      `INSERT INTO orders (account_id, order_date, total_price, status) 
+      VALUES ($1, CURRENT_DATE, $2, $3) RETURNING *`,
+      [accountId, cart.total_price, "completed"]
+    );
+    const newOrder = orderResult.rows[0];
+
+    // tick checked_out cart
+    await pool.query(`UPDATE carts SET checked_out = true WHERE id = $1`, [
+      cartId,
+    ]);
+
+    // send products in cart to order
+    for (const product of cartProducts.rows) {
+      await pool.query(
+        `INSERT INTO products_orders (product_id, order_id, quantity) VALUES ($1, $2, $3)`,
+        [product.product_id, newOrder.id, product.quantity]
+      );
+    }
+    // respond woohoo
+    res.status(200).json({message: "successful order", newOrder});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "INternal server error" });
+    throw err;
+  }
+};
+
 ////////////////////////////////////////////////// Orders
 const getAllOrders = (req, res) => {
   pool.query("SELECT * FROM orders ORDER BY id", (err, results) => {
@@ -202,7 +297,7 @@ const getOrderById = (req, res) => {
   });
 };
 
-//////////////////////////////////////////////////
+////////////////////////////////////////////////// exports
 module.exports = {
   getAllProducts,
   getProductById,
@@ -215,4 +310,5 @@ module.exports = {
   updateCart,
   getOrderById,
   getAllOrders,
+  checkout,
 };

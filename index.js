@@ -96,6 +96,8 @@ app.get("/accounts/:id/cart", accounts.checkAuthenticated, accounts.isOwner, db.
 app.post("/cart", accounts.checkAuthenticated, db.createCart);
 app.post("/cart/:id", accounts.checkAuthenticated, accounts.isOwnerOfCart, db.updateCart);
 
+//////////////////checkout = carts + orders
+app.post('/cart/:id/checkout', accounts.checkAuthenticated, db.checkout);
 
 ////////////////// orders
 app.get("/orders", db.getAllOrders);
