@@ -298,6 +298,21 @@ const getOrderById = (req, res) => {
   });
 };
 
+const getOrderHistory = async (req, res) => {
+  const accountId = parseInt(req.user.id);
+  try {
+    const orderResult = await pool.query("SELECT * FROM orders WHERE account_id = $1 ORDER BY order_date", [accountId]);
+    if (orderResult.rows.length == 0) {
+      return res.send("No order found");
+    }
+    const orderHistory = orderResult.rows;
+    res.json(orderHistory);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({error: "internal server error"});
+  }
+};
+
 ////////////////////////////////////////////////// exports
 module.exports = {
   getAllProducts,
@@ -311,5 +326,6 @@ module.exports = {
   updateCart,
   getOrderById,
   getAllOrders,
+  getOrderHistory,
   checkout,
 };

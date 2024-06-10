@@ -100,8 +100,8 @@ app.post("/cart/:id", accounts.checkAuthenticated, accounts.isOwnerOfCart, db.up
 app.post('/cart/:id/checkout', accounts.checkAuthenticated, db.checkout);
 
 ////////////////// orders
-app.get("/orders", db.getAllOrders);
-app.get("/orders/:id", db.getOrderById);
+app.get("/orders", accounts.checkAuthenticated, db.getOrderHistory); //should be order history
+app.get("/orders/:id", accounts.checkAuthenticated, accounts.isOwner, db.getOrderById);
 
 
 ////////////////////////////////////////////////////////// activate server
