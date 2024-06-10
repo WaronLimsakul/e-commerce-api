@@ -1,0 +1,430 @@
+openapi: 3.0.1
+info:
+  title: E-commerce api
+  version: '3.0'
+  description: api for E-commerce project
+paths:
+  /products:
+    summary: get all products or by category
+    description: >-
+      used to get all products data from database or products from category's id
+      provided in query
+    get:
+      summary: get all products or by category
+      description: >-
+        retrieve all products data from database or products from category id
+        provided in query
+      operationId: get_products
+      responses:
+        '200':
+          description: retrieve data successfully
+          content:
+            application/json:
+              examples:
+                products data:
+                  value:
+                    - id: 1
+                      name: sofa
+                      price: '120.00'
+                      stock: 5
+                      description: red sofa, black legs
+                      category_id: 1
+                    - id: 2
+                      name: T-shirt
+                      price: '10.00'
+                      stock: 100
+                      description: cotton T-shirt with logo
+                      category_id: 1
+        default:
+          description: Default error sample response
+      tags:
+        - Products
+  /products/:id:
+    summary: get products by product's id
+    description: used to get a product by its particular id
+    get:
+      summary: get a product by its id
+      description: used to get a product data from id parameters provided
+      operationId: get_products_by_id
+      responses:
+        '200':
+          description: successfully get data
+          content:
+            application/json:
+              examples:
+                product data:
+                  value:
+                    - id: 2
+                      name: T-shirt
+                      price: '10.00'
+                      stock: 100
+                      description: cotton T-shirt with logo
+                      category_id: 1
+        default:
+          description: Default error sample response
+      tags:
+        - Products
+  /accounts:
+    summary: get all accounts
+    description: used to get general data of all accounts in database
+    get:
+      summary: get general all accounts' data
+      description: get general data of all accounts such as id, username
+      operationId: get_accounts
+      responses:
+        '200':
+          description: succussfully get data
+          content:
+            application/json:
+              examples:
+                general accounts' data:
+                  value:
+                    - id: 4
+                      username: WL0102
+                    - id: 7
+                      username: Rowan
+                    - id: 8
+                      username: Kendrick01
+        default:
+          description: Default error sample response
+      tags:
+        - Accounts
+  /accounts/:id:
+    summary: get or update account by id
+    description: used to get account detail or update the detail by id
+    get:
+      summary: get account detail by id
+      description: >-
+        Used to get the account detail by id after ensure enthentication and
+        compare requested id to authenticated id
+      operationId: get_accounts_detail
+      responses:
+        '200':
+          description: succesfully retrieve
+          content:
+            application/json:
+              examples:
+                account's detail:
+                  value: |-
+                    [
+                        {
+                            "account_id": 8,
+                            "full_name": "Kendrick Hurt",
+                            "date_of_birth": "1987-06-16T17:00:00.000Z",
+                            "address": "California",
+                            "email": "KL@ND.com"
+                        }
+                    ]
+        default:
+          description: Default error sample response
+      tags:
+        - Accounts
+    put:
+      summary: update account's detail by id
+      description: >-
+        Used to update accounts detail by id parameter and urlencoded or json
+        body. Has to ensure authentication and requested id
+      operationId: update_accounts_detail
+      responses:
+        '201':
+          description: update successfully
+          content:
+            application/json:
+              examples:
+                updated account detail:
+                  value: |-
+                    {
+                        "message": "update success!",
+                        "detail": {
+                            "account_id": 8,
+                            "full_name": "Kendrick Hurt",
+                            "date_of_birth": "1987-06-16T17:00:00.000Z",
+                            "address": "California",
+                            "email": "db@tt2.com"
+                        }
+                    }
+        default:
+          description: Default error sample response
+      tags:
+        - Accounts
+  /accounts/:id/cart:
+    summary: get active cart by account id
+    description: used to get the active cart by account id parameter
+    get:
+      summary: get active by account id
+      description: >-
+        used account id parameter to get an active cart linked with the account
+        id
+      operationId: get_cart_by_id
+      responses:
+        '200':
+          description: found cart and successfully retrieve
+          content:
+            application/json:
+              examples:
+                cart data:
+                  value: |-
+                    {
+                        "id": 6,
+                        "account_id": 8,
+                        "created_at": "2024-06-10T04:29:39.660Z",
+                        "updated_at": "2024-06-10T04:29:39.660Z",
+                        "checked_out": false,
+                        "total_price": "0"
+                    }
+        '404':
+          description: the user doesn't have active cart
+          content:
+            text/plain; charset=utf-8:
+              examples:
+                message:
+                  value: cart not found
+        default:
+          description: Default error sample response
+      tags:
+        - Cart
+  /cart:
+    summary: 'create a new cart '
+    description: 'used to create a new active cart incase that user doesn''t have one '
+    post:
+      summary: create a new cart
+      description: >-
+        used to create a new shopping cart for customer that doesn't have one.
+        Otherwise, redirect to get the active cart. 
+      operationId: create_cart
+      responses:
+        '201':
+          description: successfully create cart
+          content:
+            application/json:
+              examples:
+                newly created cart data:
+                  value: |-
+                    {
+                        "id": 6,
+                        "account_id": 8,
+                        "created_at": "2024-06-10T04:29:39.660Z",
+                        "updated_at": "2024-06-10T04:29:39.660Z",
+                        "checked_out": false,
+                        "total_price": "0"
+                    }
+        default:
+          description: Default error sample response
+      tags:
+        - Cart
+  /cart/:id:
+    summary: add products to active cart by cart's id
+    description: used to add products to existing cart by cart id
+    post:
+      summary: add products to cart
+      description: >-
+        After login. Used to add products to cart. attach cart id to parameter, 
+        productId and quantity to request's body 
+      operationId: cart_add_products
+      responses:
+        '200':
+          description: add products that already exist in cart (increase quantity)
+          content:
+            application/json:
+              examples:
+                cart and detail:
+                  value: |-
+                    {
+                        "cart": {
+                            "id": 6,
+                            "updated_at": "2024-06-10T04:29:39.660Z",
+                            "total_price": "900.00"
+                        },
+                        "detail": {
+                            "product_id": 4,
+                            "cart_id": 6,
+                            "quantity": 3,
+                            "created_at": "2024-06-10T04:54:19.871Z",
+                            "updated_at": "2024-06-10T04:58:05.885Z"
+                        }
+                    }
+        '201':
+          description: add new products to cart
+          content:
+            application/json:
+              examples:
+                cart and detail:
+                  value: |-
+                    {
+                        "cart": {
+                            "id": 6,
+                            "updated_at": "2024-06-10T04:29:39.660Z",
+                            "total_price": "600.00"
+                        },
+                        "detail": {
+                            "product_id": 4,
+                            "cart_id": 6,
+                            "quantity": 2,
+                            "created_at": "2024-06-10T04:54:19.871Z",
+                            "updated_at": "2024-06-10T04:54:19.871Z"
+                        }
+                    }
+        default:
+          description: Default error sample response
+      tags:
+        - Cart
+  /cart/:id/checkout:
+    summary: checkout and craete order
+    description: used to checkout the cart , create a new order and deactivate the cart
+    post:
+      summary: checkout cart and create order
+      description: >-
+        used to checkout the active cart that has products, create a new order
+        and deactivate the cart
+      operationId: checkout_cart
+      responses:
+        '200':
+          description: succesfully checkout
+          content:
+            application/json:
+              examples:
+                message and order:
+                  value: |-
+                    {
+                        "message": "successful order",
+                        "newOrder": {
+                            "id": 9,
+                            "order_date": "2024-06-09T17:00:00.000Z",
+                            "total_price": "900.00",
+                            "status": "completed",
+                            "account_id": 8
+                        }
+                    }
+        default:
+          description: Default error sample response
+      tags:
+        - Checkout
+  /orders:
+    summary: get order history
+    description: used to get order history of user after login
+    get:
+      summary: get order history
+      description: after login, used to get order history of user ordered by order date
+      operationId: get_orders
+      responses:
+        '200':
+          description: successfully retrieve
+          content:
+            application/json:
+              examples:
+                order history:
+                  value: |-
+                    [
+                        {
+                            "id": 8,
+                            "order_date": "2024-06-09T17:00:00.000Z",
+                            "total_price": "1200.00",
+                            "status": "completed",
+                            "account_id": 8
+                        },
+                        {
+                            "id": 9,
+                            "order_date": "2024-06-09T17:00:00.000Z",
+                            "total_price": "900.00",
+                            "status": "completed",
+                            "account_id": 8
+                        }
+                    ]
+        default:
+          description: Default error sample response
+      tags:
+        - Orders
+  /orders/:id:
+    summary: get order by id
+    description: used to get an order by order id
+    get:
+      summary: get order by order's id
+      description: 'after login, used to get order by the order id '
+      operationId: get_order_by_id
+      responses:
+        '200':
+          description: successfully retreive
+          content:
+            application/json:
+              examples:
+                order data:
+                  value: |-
+                    [
+                        {
+                            "id": 8,
+                            "order_date": "2024-06-09T17:00:00.000Z",
+                            "total_price": "1200.00",
+                            "status": "completed",
+                            "account_id": 8
+                        }
+                    ]
+        default:
+          description: Default error sample response
+      tags:
+        - Orders
+  /login:
+    summary: log in user
+    description: used to log user in in order to do operations in the api
+    post:
+      summary: log in existing user
+      description: >-
+        used to login existing user by providing username and password in
+        request body
+      operationId: login
+      responses:
+        '200':
+          description: successfully login, means the username and password are correct
+          content:
+            text/plain; charset=utf-8:
+              examples:
+                'message ':
+                  value: login success!
+        default:
+          description: Default error sample response
+      tags:
+        - Authenticate
+  /register:
+    summary: register new user
+    description: used to register a new user with username and password
+    post:
+      summary: register new account
+      description: used to register new account with username and password in request'body
+      operationId: register
+      responses:
+        '201':
+          description: successfully register
+          content:
+            application/json:
+              examples:
+                message and account general data:
+                  value: |-
+                    {
+                        "message": "register success",
+                        "newAccount": {
+                            "id": 13,
+                            "username": "Westbrook00"
+                        }
+                    }
+        default:
+          description: Default error sample response
+      tags:
+        - Authenticate
+  /logout:
+    summary: log user out
+    description: used to log user out and delete session
+    get:
+      summary: log user out
+      description: 'used to log user out and delete current session including cookie '
+      operationId: logout
+      responses:
+        '200':
+          description: successfully log out
+          content:
+            text/plain; charset=utf-8:
+              examples:
+                message:
+                  value: logout successful
+        default:
+          description: Default error sample response
+      tags:
+        - Authenticate
