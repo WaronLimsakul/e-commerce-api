@@ -165,7 +165,7 @@ const createCart = async (req, res) => {
       return res.redirect(`/accounts/${userId}/cart`);
     }
     const newCart = await pool.query(
-      "INSERT INTO carts (account_id, created_at, updated_at) VALUES ($1, NOW(), NOW())",
+      "INSERT INTO carts (account_id, created_at, updated_at) VALUES ($1, NOW(), NOW()) RETURNING *",
       [userId]
     );
     res.status(201).json(newCart.rows[0]);
@@ -203,6 +203,7 @@ const updateCart = async (req, res) => {
       "INSERT INTO products_carts (cart_id, product_id, quantity, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *",
       [cartId, productId, quantity]
     );
+    const totalPrice = await calculateTotalPrice(cartId);
     const cartNow = await pool.query(
       "UPDATE carts SET total_price = $1 WHERE id = $2 RETURNING id, updated_at, total_price",
       [totalPrice, cartId]
@@ -250,7 +251,7 @@ const checkout = async (req, res) => {
     const orderResult = await pool.query(
       `INSERT INTO orders (account_id, order_date, total_price, status) 
       VALUES ($1, CURRENT_DATE, $2, $3) RETURNING *`,
-      [accountId, cart.total_price, "completed"]
+      [accountId, cart.rows[0].total_price, "completed"]
     );
     const newOrder = orderResult.rows[0];
 
