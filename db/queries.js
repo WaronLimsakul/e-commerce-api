@@ -22,7 +22,7 @@ const getAllAccounts = (req, res) => {
 const getAccountById = (req, res) => {
   const id = parseInt(req.params.id);
   pool.query(
-    "SELECT * FROM accounts_detail WHERE id = $1",
+    "SELECT * FROM accounts_detail WHERE account_id = $1",
     [id],
     (err, results) => {
       if (err) {
