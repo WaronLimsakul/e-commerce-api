@@ -62,15 +62,11 @@ const updateAccountById = async (req, res) => {
         [address, id]
       );
     }
+    const updatedAccount = await pool.query("SELECT * FROM accounts_detail WHERE account_id = $1", [id]);
+    res.status(201).json({message: "update success!", detail:updatedAccount.rows[0]} );
   } catch (err) {
     res.status(500).send("error updating accounts");
   }
-  const updatedAccount = await pool.query(
-    "SELECT * FROM accounts_detail WHERE account_id = $1",
-    [id]
-  );
-
-  res.send(updatedAccount.rows[0]);
 };
 
 ////////////////////////////////////////////////// Products
