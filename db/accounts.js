@@ -10,13 +10,14 @@ const localStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcrypt");
 
 const createAccount = async (account) => {
-  const { username, password, email } = account;
+  const { username, password } = account;
   try {
+    console.log(username, password);
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     const results = await pool.query(
-      "INSERT INTO accounts (username, password, email) VALUES($1, $2, $3) RETURNING *",
-      [username, hashedPassword, email]
+      "INSERT INTO accounts (username, password) VALUES ($1, $2) RETURNING id, username",
+      [username, hashedPassword]
     );
     const newAccount = results.rows[0];
     return newAccount;

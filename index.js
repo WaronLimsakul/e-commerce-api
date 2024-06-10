@@ -52,7 +52,7 @@ app.get("/success", accounts.checkAuthenticated, (req, res) => {
 app.post("/register", async (req, res) => {
   try {
     const newAccount = await accounts.createAccount(req.body);
-    res.status(201).send(newAccount);
+    res.status(201).json({message: "register success", newAccount});
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
   }
